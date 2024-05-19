@@ -1,16 +1,14 @@
+import json
 import logging
+import os
 from flask import Flask, request, jsonify
+import openai
 
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-
-RECEITAS = [
-    {'id': '1', 'nome': 'Spaghetti Carbonara', 'ingredientes': ['spaghetti', 'ovos', 'queijo parmesão', 'bacon']},
-    {'id': '2', 'nome': 'Sopa de Tomate', 'ingredientes': ['tomate', 'cebola', 'alho', 'manjericão']},
-    {'id': '3', 'nome': 'Frango ao Curry', 'ingredientes': ['frango', 'pó de curry', 'leite de coco', 'cebola', 'alho']}
-]
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+client = openai.OpenAI(api_key=OPENAI_API_KEY)
 
 
 @app.post('/receitas')
@@ -21,14 +19,28 @@ def busca_receitas():
             logger.error({f'erro': 'Entrada inválida, por favor forneça uma lista de ingredientes.'})
             return jsonify({'erro': 'Entrada inválida, por favor forneça uma lista de ingredientes.'}), 400
 
-        ingredientes = [ingrediente.lower() for ingrediente in body['ingredientes']]
+        ingredientes = ', '.join(body['ingredientes']).lower()
         logger.info(f"Ingredientes recebidos: {ingredientes}")
 
-        receitas_encontradas = []
-        for receita in RECEITAS:
-            ingredientes_receita = [ingrediente.lower() for ingrediente in receita['ingredientes']]
-            if all(ingrediente in ingredientes_receita for ingrediente in ingredientes):
-                receitas_encontradas.append(receita)
+        completion_text = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "Você é um chef de cozinha procurando inspiração."},
+                {"role": "user", "content": f"Sugira receitas que contenham os seguintes ingredientes: {ingredientes}. "
+                                            f"Liste as receitas de forma completa no seguinte formato JSON, "
+                                            f" incluindo todos os campos: "f"[{{'id': '1', 'nome': 'Nome da receita', "
+                                            f" 'ingredientes_necessarios': ['nome': 'Nome do ingrediente', "
+                                            f" 'quantidade': 'Peso ou Unidades'], "
+                                            f" 'modo_de_preparo': 'Descrição do preparo', "
+                                            f"'tempo_de_preparo': 'Tempo necessário', "
+                                            f" 'tipo': 'Opções: Salgado, Doce, Agridoce'}}]"}
+            ]
+        )
+        completion_text = completion_text.choices[0].message.content
+        logger.info(completion_text)
+
+        receitas_encontradas = json.loads(completion_text)
+        logger.info(receitas_encontradas)
 
         if receitas_encontradas:
             logger.info(f"Receitas encontradas: {len(receitas_encontradas)}")
