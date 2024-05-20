@@ -14,6 +14,7 @@
             <input type="text" id="ingredients" name="ingredients" required>
             <button type="submit">Buscar Receitas</button>
         </form>
+        <div id="loading" style="display: none;">Carregando...</div>
         <div id="results"></div>
     </div>
 
@@ -21,6 +22,12 @@
         document.getElementById('ingredients-form').addEventListener('submit', function(e) {
             e.preventDefault();
             const ingredients = document.getElementById('ingredients').value.split(',').map(item => item.trim());
+            const loadingDiv = document.getElementById('loading');
+            const resultsDiv = document.getElementById('results');
+
+            loadingDiv.style.display = 'block';
+            resultsDiv.innerHTML = '';
+
             fetch('/recipes', {
                 method: 'POST',
                 headers: {
@@ -30,8 +37,8 @@
             })
             .then(response => response.json())
             .then(data => {
-                const resultsDiv = document.getElementById('results');
-                resultsDiv.innerHTML = '';
+                loadingDiv.style.display = 'none';
+
                 if (data.erro) {
                     resultsDiv.innerHTML = `<p>${data.erro}</p>`;
                 } else if (data.mensagem) {
@@ -56,6 +63,8 @@
                 }
             })
             .catch(error => {
+                loadingDiv.style.display = 'none';
+                resultsDiv.innerHTML = '<p>Ocorreu um erro ao buscar as receitas. Por favor, tente novamente mais tarde.</p>';
                 console.error('Erro:', error);
             });
         });

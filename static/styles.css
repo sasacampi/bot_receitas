@@ -47,6 +47,13 @@ button:hover {
     background-color: #0056b3;
 }
 
+#loading {
+    display: none;
+    text-align: center;
+    font-weight: bold;
+    color: #007bff;
+}
+
 #results {
     margin-top: 20px;
 }
