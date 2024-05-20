@@ -1,7 +1,7 @@
 import json
 import logging
 import os
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 import openai
 
 app = Flask(__name__)
@@ -16,6 +16,11 @@ def is_valid_json(variable):
         return json.loads(variable)
     except json.JSONDecodeError:
         return False
+
+
+@app.route('/')
+def index():
+    return render_template('index.html')
 
 
 @app.post('/recipes')
