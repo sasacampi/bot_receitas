@@ -11,6 +11,13 @@ OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 client = openai.OpenAI(api_key=OPENAI_API_KEY)
 
 
+def is_valid_json(variable):
+    try:
+        return json.loads(variable)
+    except json.JSONDecodeError:
+        return False
+
+
 @app.post('/recipes')
 def recipes():
     try:
@@ -20,7 +27,7 @@ def recipes():
             return jsonify({'erro': 'Entrada inválida, por favor forneça uma lista de ingredientes.'}), 400
 
         ingredients = ', '.join(body['ingredientes']).lower()
-        logger.info(f"Ingredientes recebidos: {ingredients}")
+        logger.info(f"Ingredientes recebidos: {ingredients}.")
 
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
@@ -40,18 +47,15 @@ def recipes():
             max_tokens=1500
         )
         response = response.choices[0].message.content
-        logger.info(response)
-
-        recipes_found = json.loads(response)
-        logger.info(recipes_found)
+        recipes_found = is_valid_json(response)
 
         if recipes_found:
-            logger.info(f"Receitas encontradas: {len(recipes_found)}")
+            logger.info(f"Receitas encontradas com sucesso.")
             return jsonify(recipes_found), 200
         else:
-            logger.info("Nenhuma receita encontrada.")
-            return jsonify({'mensagem': 'Nenhuma receita encontrada'}), 200
+            logger.info("Nenhuma receita encontrada para o(s) ingrediente(s) informado(s).")
+            return jsonify({'mensagem': 'Nenhuma receita encontrada para o(s) ingrediente(s) informado(s).'}), 200
 
     except Exception as e:
         logger.error(f"Ocorreu um erro: {e}")
-        return jsonify({'erro': 'Ocorreu um erro interno'}), 500
+        return jsonify({'erro': 'Ocorreu um erro interno.'}), 500
