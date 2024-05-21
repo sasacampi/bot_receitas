@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Receitas</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Buscador de Receitas</h1>
+        <form id="ingredients-form">
+            <label for="ingredients">Ingredientes (separados por vírgula):</label>
+            <input type="text" id="ingredients" name="ingredients" required>
+            <button type="submit">Buscar Receitas</button>
+        </form>
+        <div id="loading" style="display: none;">Carregando...</div>
+        <div id="results"></div>
+    </div>
+
+    <script>
+        document.getElementById('ingredients-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const ingredients = document.getElementById('ingredients').value.split(',').map(item => item.trim());
+            const loadingDiv = document.getElementById('loading');
+            const resultsDiv = document.getElementById('results');
+
+            loadingDiv.style.display = 'block';
+            resultsDiv.innerHTML = '';
+
+            fetch('/recipes', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ ingredientes: ingredients })
+            })
+            .then(response => response.json())
+            .then(data => {
+                loadingDiv.style.display = 'none';
+
+                if (data.erro) {
+                    resultsDiv.innerHTML = `<p>${data.erro}</p>`;
+                } else if (data.mensagem) {
+                    resultsDiv.innerHTML = `<p>${data.mensagem}</p>`;
+                } else {
+                    data.forEach(recipe => {
+                        const recipeDiv = document.createElement('div');
+                        recipeDiv.classList.add('recipe');
+                        recipeDiv.innerHTML = `
+                            <h2>${recipe.nome}</h2>
+                            <p><strong>Tempo de Preparo:</strong> ${recipe.tempo_de_preparo}</p>
+                            <p><strong>Tipo:</strong> ${recipe.tipo}</p>
+                            <h3>Ingredientes Necessários:</h3>
+                            <ul>
+                                ${recipe.ingredientes_necessarios.map(ing => `<li>${ing.nome} - ${ing.quantidade}</li>`).join('')}
+                            </ul>
+                            <h3>Modo de Preparo:</h3>
+                            <p>${recipe.modo_de_preparo}</p>
+                        `;
+                        resultsDiv.appendChild(recipeDiv);
+                    });
+                }
+            })
+            .catch(error => {
+                loadingDiv.style.display = 'none';
+                resultsDiv.innerHTML = '<p>Ocorreu um erro ao buscar as receitas. Por favor, tente novamente mais tarde.</p>';
+                console.error('Erro:', error);
+            });
+        });
+    </script>
+</body>
+</html>
